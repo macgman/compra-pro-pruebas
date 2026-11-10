@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: compra-pro-security-test
+    runtime: node
+    plan: starter
+    rootDir: .
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: FIREBASE_PROJECT_ID
+        value: inventario-compra
+      - key: FIREBASE_DATABASE_URL
+        value: https://inventario-compra-default-rtdb.firebaseio.com
+      - key: COMPRA_PRO_ROOM_ID
+        value: compra-pro-pruebas
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: MASTER_USERNAME
+        sync: false
+      - key: MASTER_PASSWORD
+        sync: false
+      - key: MASTER_NAME
+        value: Propietario del sistema
+      - key: ALLOWED_ORIGINS
+        sync: false

@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>COMPRA v3.0.8 · M.C</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Firebase Realtime Database para sincronización en tiempo real entre computadoras -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://compra-pro-888c9-default-rtdb.firebaseio.com" crossorigin>
+<link rel="preconnect" href="https://compra-pro-security.onrender.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<script defer src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
+<!-- ExcelJS para generacion y lectura nativa de libros Excel (.xlsx) -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<!-- Html5-QRCode para escaneo de codigos de barra y QR mediante camara -->
+<script defer src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link rel="stylesheet" href="css/app.css?v=20261108-permissions-ui">
+
+
+
+
+
+
+
+
+<meta name="description" content="COMPRA: sistema web de inventario, compras, kardex y reportes en tiempo real.">
+<meta name="theme-color" content="#053a2c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23047857'/%3E%3Cpath d='M16 26l16-8 16 8v18l-16 8-16-8z' fill='none' stroke='%23ecfdf5' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M16 26l16 8 16-8M32 34v18' stroke='%23ecfdf5' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+
+
+<!-- ===== CAPA WEB (agregada; no modifica el código original) ===== -->
+<meta name="description" content="COMPRA · Sistema de inventario y compras en tiempo real">
+<meta name="theme-color" content="#064e3b">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<script>try{var t=localStorage.getItem('wr-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="css/capa-web.css?v=20261111">
+</head>
+<body>
+<div id="wr-splash"><i class="fas fa-boxes-stacked" style="font-size:2.6rem;color:#6ee7b7"></i><b>COMPRA</b><div class="wr-spin"></div></div>
+<div id="wr-off"><i class="fas fa-wifi"></i> Sin conexión a Internet · reintentando…</div>
+<div id="wr-pal"><div class="box"><input id="wr-pal-in" placeholder="Ir a una sección o ejecutar una acción…" autocomplete="off"><ul id="wr-pal-list"></ul><div class="hint">↑ ↓ navegar · Enter abrir · Esc cerrar</div></div></div>
+<noscript><p style="padding:20px;font-family:sans-serif">Esta aplicación necesita JavaScript activado.</p></noscript>
+
+
+<!-- BANNER MODO OFFLINE -->
+<div id="offline-banner">
+  <div class="offline-dot"></div>
+  <i class="fas fa-wifi" style="transform: rotate(45deg);"></i>
+  <span>MODO OFFLINE — Guardado local activo • Sincronizará al volver el internet</span>
+  <i class="fas fa-database"></i>
+</div>
+
+
+<!-- LOGIN MULTI-USUARIO -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div style="display:flex; justify-content:center; margin-bottom:12px;">
+      <img src="img/logo.png" alt="M.C Logo" style="width:88px; height:88px; object-fit:contain; background:#fff; border-radius:20px; padding:6px; filter: drop-shadow(0 6px 14px rgba(5,150,105,0.25));">
+    </div>
+    <h2 style="color: #064e3b; font-weight: 800; font-size: 1.6rem; margin-bottom: 4px; letter-spacing:-0.02em;">COMPRA</h2>
+    <p style="color: #64748b; margin-bottom: 18px; font-size: 0.86rem; font-weight:600;">Gestión de Inventario y Compras</p>
+    <div class="login-features">Inventario · Compras · Kardex · Reportes · Multiusuario</div>
+
+    <form id="login-form" autocomplete="on" onsubmit="return handleLoginSubmit(event);">
+    <div style="margin-bottom: 12px; text-align: left;">
+      <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase;">Usuario</label>
+      <input type="text" id="login-user" class="login-input" placeholder="Ej. admin o usuario" autocomplete="username" enterkeyhint="next" style="margin-top: 4px;">
+    </div>
+
+    <div style="margin-bottom: 20px; text-align: left;">
+      <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase;">Contraseña</label>
+      <div style="position: relative; margin-top: 4px;">
+        <input type="password" id="login-pass" class="login-input" placeholder="••••••••" autocomplete="current-password" enterkeyhint="go" style="padding-right: 45px;">
+        <span onclick="togglePasswordVisibility()" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #064e3b; font-size: 1.15rem;">
+          <i class="fas fa-eye-slash" id="toggle-icon"></i>
+        </span>
+      </div>
+    </div>
+
+    <button type="submit" aria-label="Iniciar sesión" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 13px; font-size: 0.95rem;">
+      <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+    </button>
+    </form>
+
+    <div class="dev-brand-login">
+      <img src="img/logo.png" alt="M.C">
+      <div class="dev-info">
+        <strong>Mario Alberto Chable</strong>
+        <span>Lic. en Informática</span>
+        <small><i class="fas fa-code" style="margin-right:4px;"></i>Creador y desarrollador de PROGRAMA COMPRA</small>
+      </div>
+    </div>
+    <div class="dev-footer-login">© 2026 PROGRAMA DE COMPRA · M.C. · Versión 3.0.8</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar" class="no-print">
+  <div class="logo">
+    <h1><i class="fas fa-boxes-stacked"></i> COMPRA</h1>
+    <div class="logo-sub"><i class="fas fa-globe"></i> Red en Tiempo Real</div>
+  </div>
+  <nav>
+    <div class="nav-group">General</div>
+    <a class="active" onclick="showSection('dashboard')" id="nav-dashboard"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+    <div class="nav-group">Inventario</div>
+    <a onclick="showSection('inventario')" id="nav-inventario"><i class="fas fa-box-open"></i><span>Inventario Compras</span></a>
+    <a onclick="showSection('vale-inventario')" id="nav-vale-inventario"><i class="fas fa-hand-holding-heart"></i><span>Inventario Vale / Donación</span></a>
+    <a onclick="showSection('inv-fisico')" id="nav-inv-fisico" class="admin-only"><i class="fas fa-clipboard-check"></i><span>Inv. Físico</span></a>
+    <div class="nav-group">Compras</div>
+    <a onclick="showSection('ventas')" id="nav-ventas"><i class="fas fa-shopping-cart"></i><span>Nueva Compra</span></a>
+    <a onclick="showSection('historial-ventas')" id="nav-historial-ventas"><i class="fas fa-history"></i><span>Historial Compras</span></a>
+    <a onclick="openF361BatchModal()" id="nav-imprimir-folios"><i class="fas fa-print"></i><span>Imprimir folios</span></a>
+    <a onclick="showSection('ventas-material')" id="nav-ventas-material"><i class="fas fa-chart-line"></i><span>Ventas por Material</span></a>
+    <div class="nav-group">Control</div>
+    <a onclick="showSection('movimientos')" id="nav-movimientos"><i class="fas fa-exchange-alt"></i><span>Movimientos</span></a>
+    <a onclick="showSection('kardex')" id="nav-kardex"><i class="fas fa-list-alt"></i><span>Kardex</span></a>
+    <a onclick="showSection('config')" id="nav-config" class="admin-only"><i class="fas fa-users-cog"></i><span>Usuarios y Red</span></a>
+  </nav>
+  <div class="dev-sidebar-footer">
+    <!-- ARRIBA: Controles de usuario -->
+    <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.06); padding:10px 12px; border-radius:10px; border:1px solid rgba(110,231,183,0.12);">
+      <div id="role-tag" class="role-badge" style="margin:0;"></div>
+      <div style="font-size:0.82rem; font-weight:800; color:#ecfdf5; letter-spacing:-0.01em;" id="user-display"></div>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:2px;">
+      <a onclick="logout()" style="display:flex; align-items:center; gap:6px; font-size:0.74rem; color:#a7f3d0; cursor:pointer; font-weight:700; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);" onmouseover="this.style.background='rgba(239,68,68,0.15)'; this.style.color='#fca5a5'" onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.color='#a7f3d0'"><i class="fas fa-sign-out-alt"></i> Salir</a>
+      <span style="font-size:0.6rem; color:rgba(167,243,208,0.55); font-weight:700;">v3.0.8 • 2026</span>
+    </div>
+    <div style="height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); margin:10px 0 2px;"></div>
+    <!-- ABAJO: Info desarrollador -->
+    <div class="dev-sidebar-brand" style="margin-top:4px;">
+      <img src="img/logo.png" alt="M.C">
+      <div class="dev-sidebar-brand-text">
+        <b>Mario Alberto Chable</b>
+        <i>LIC. EN INFORMÁTICA</i>
+      </div>
+    </div>
+    <div class="dev-sidebar-meta">
+      <i class="fas fa-code" style="margin-right:4px; color:#6ee7b7;"></i><b>Desarrollo profesional</b><br>© Mario A. Chable • M.C • Código verificado
+    </div>
+  </div>
+</div>
+
+
+<div class="sidebar-scrim no-print" id="sidebar-scrim" aria-hidden="true"></div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar" class="no-print">
+    <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+      <button type="button" class="menu-toggle no-print" id="menu-toggle" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <h2 id="page-title"><i class="fas fa-chart-pie"></i> Dashboard</h2>
+      <div id="venta-mode-tabs" class="venta-mode-tabs" role="tablist" aria-label="Tipo de registro">
+        <button type="button" id="venta-mode-tab" class="venta-mode-tab active" onclick="showSection('ventas')">VENTA</button>
+        <button type="button" id="vale-mode-tab" class="venta-mode-tab" onclick="showSection('vale-manual')">VALE MANUAL</button>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div class="cloud-status" id="cloud-status-badge" onclick="reconnectCloud()" title="Clic para reconectar red">
+        <div class="cloud-dot" id="cloud-dot"></div>
+        <span id="cloud-status-text">Conectando...</span>
+      </div>
+      <div id="folio-display" style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 6px 14px; border-radius: 8px; font-weight: 800; color: #065f46;">
+        <i class="fas fa-hashtag"></i> Folio: <span id="folio-val">---</span>
+        <button class="folio-permission" onclick="openFolioModal()" title="Modificar folio" style="background:none; border:none; cursor:pointer; color:#059669; margin-left:6px;"><i class="fas fa-edit"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="content">
+    <!-- DASHBOARD -->
+    <div id="section-dashboard" class="section active">
+      <div id="stats-grid" class="stats-grid"></div>
+      <div class="table-wrap">
+        <div style="padding: 18px 24px; border-bottom: 1px solid var(--border); font-weight: 800; color: #991b1b; background: #fff5f5;"><i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 6px;"></i> Stock Cr&iacute;tico (&le; 5)</div>
+        <table><thead><tr><th>Clave</th><th>Descripci&oacute;n</th><th>Unidad</th><th>Stock</th></tr></thead><tbody id="dash-critical-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- INVENTARIO -->
+    <div id="section-inventario" class="section" style="display:none;">
+      <div class="toolbar">
+        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="inv-search" placeholder="Buscar por clave, partida, contrato, factura o nombre..." oninput="filterInventario()"></div>
+        <div class="search-box" style="flex:0 0 190px;min-width:160px;"><i class="fas fa-hashtag"></i><input type="text" id="inv-partida" placeholder="Partida (ej. 40)" title="Buscar por número de partida exacto. Puedes separar varias con coma: 40, 41" inputmode="numeric" autocomplete="off" oninput="filterInventario()"></div>
+        <button class="btn btn-outline" onclick="openScannerModal('inv')" title="Escanear Codigo de Barras o QR"><i class="fas fa-barcode"></i> Escanear</button>
+        <select id="inv-stock-filter" onchange="filterInventario()">
+          <option value="all">Todos los materiales</option>
+          <option value="nonzero">Solo con stock (&gt; 0)</option>
+          <option value="zero">Solo Agotados (0)</option>
+          <option value="lt5">Menos de 5</option>
+          <option value="lt10">Menos de 10</option>
+          <option value="gt10">M&aacute;s de 10</option>
+          <option value="gt20">M&aacute;s de 20</option>
+          <option value="gt50">M&aacute;s de 50</option>
+        </select>
+        <select id="inv-sort" onchange="filterInventario()">
+          <option value="default">Organizar: sin orden</option>
+          <option value="nombre-az">Nombre A-Z</option>
+          <option value="nombre-za">Nombre Z-A</option>
+          <option value="clave-az">Clave A-Z</option>
+          <option value="clave-za">Clave Z-A</option>
+          <option value="stock-asc">Stock menor a mayor</option>
+          <option value="stock-desc">Stock mayor a menor</option>
+          <option value="precio-asc">Precio menor a mayor</option>
+          <option value="precio-desc">Precio mayor a menor</option>
+        </select>
+        <button class="btn btn-outline" onclick="refreshStock()"><i class="fas fa-sync-alt"></i> Refrescar</button>
+        <button class="btn btn-primary admin-only" onclick="openProductModal()"><i class="fas fa-plus"></i> Nuevo Material</button>
+        <input type="file" id="bulk-excel-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importBulkExcel(this)">
+        <button class="btn btn-outline admin-only" onclick="document.getElementById('bulk-excel-input').click()"><i class="fas fa-file-import"></i> Carga Masiva Excel</button>
+        <button class="btn btn-success" onclick="openReportModal()"><i class="fas fa-chart-column"></i> Reportes Excel</button>
+        <button class="btn btn-excel361" onclick="openF361BatchModal()"><i class="fas fa-folder-tree"></i> Imprimir folios</button>
+      </div>
+      <div class="table-wrap">
+        <table class="inventario-table"><thead><tr><th>Clave</th><th>Descripci&oacute;n</th><th>Unidad</th><th>Precio</th><th>Stock</th><th>Estado</th><th class="admin-only">Acciones</th></tr></thead><tbody id="inv-tbody"></tbody></table>
+      </div>
+      <div class="pagination" id="inv-pagination"></div>
+    </div>
+
+    <!-- INVENTARIO EXCLUSIVO PARA VALE MANUAL / DONACIÓN -->
+    <div id="section-vale-inventario" class="section" style="display:none;">
+      <div class="vale-manual-card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:18px;">
+          <div>
+            <h3 style="color:#166534; margin-bottom:5px;"><i class="fas fa-hand-holding-heart"></i> Inventario para Vale Manual / Donación</h3>
+            <div style="color:#64748b; font-size:.82rem; font-weight:600;">Catálogo independiente. No modifica ni descuenta el Inventario Compras.</div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary" type="button" onclick="openValeInventoryMaterialForm()"><i class="fas fa-plus"></i> Agregar material</button>
+            <input type="file" id="vale-inventory-excel-input" accept=".xlsx" style="display:none" onchange="importValeInventoryExcel(this)">
+            <button class="btn btn-outline" type="button" onclick="document.getElementById('vale-inventory-excel-input').click()"><i class="fas fa-file-excel"></i> Cargar Excel</button>
+            <button class="btn btn-success" type="button" onclick="exportValeInventoryExcel()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+            <button class="btn btn-outline" type="button" onclick="exportValeInventoryJSON()"><i class="fas fa-file-export"></i> Exportar JSON</button>
+            <input type="file" id="vale-inventory-json-input" accept=".json,application/json" style="display:none" onchange="importValeInventoryJSON(this)">
+            <button class="btn btn-outline" type="button" onclick="document.getElementById('vale-inventory-json-input').click()"><i class="fas fa-file-import"></i> Importar JSON</button>
+          </div>
+        </div>
+        <div id="vale-inventory-form" style="display:none; padding:16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; margin-bottom:18px;">
+          <div class="form-grid">
+            <div class="form-group"><label>Clave</label><input id="vi-clave" placeholder="Ej. DON-001"></div>
+            <div class="form-group"><label>Descripción / Material</label><input id="vi-descripcion" placeholder="Nombre del material"></div>
+            <div class="form-group"><label>Unidad</label><input id="vi-unidad" value="PIEZA"></div>
+            <div class="form-group"><label>Precio unitario</label><input id="vi-precio" type="number" min="0" step="0.01" value="0"></div>
+            <div class="form-group"><label>Existencia</label><input id="vi-existencia" type="number" min="0" step="1" value="0"></div>
+          </div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-outline" type="button" onclick="closeValeInventoryMaterialForm()">Cancelar</button>
+            <button class="btn btn-primary" type="button" onclick="saveValeInventoryMaterial()"><i class="fas fa-save"></i> Guardar material</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="search-box"><i class="fas fa-search"></i><input id="vi-search" placeholder="Buscar por clave o descripción..." oninput="renderValeInventario()"></div>
+          <select id="vi-sort" onchange="renderValeInventario()">
+            <option value="nombre-az">Descripción A-Z</option><option value="nombre-za">Descripción Z-A</option><option value="clave-az">Clave A-Z</option><option value="existencia-desc">Existencia mayor a menor</option>
+          </select>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Clave</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Existencia</th><th>Acciones</th></tr></thead><tbody id="vale-inventory-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- INVENTARIO FÍSICO -->
+    <div id="section-inv-fisico" class="section" style="display:none;">
+      <div class="toolbar">
+        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="if-search" placeholder="Buscar material para conteo..." oninput="filterInvFisico()"></div>
+        <button class="btn btn-outline" onclick="openScannerModal('inv-fisico')" title="Escanear"><i class="fas fa-barcode"></i> Escanear</button>
+        <select id="if-sort" onchange="filterInvFisico()" title="Organizar inventario fisico">
+          <option value="default">Organizar: sin orden</option>
+          <option value="nombre-az">Nombre A-Z</option>
+          <option value="nombre-za">Nombre Z-A</option>
+          <option value="clave-az">Clave A-Z</option>
+          <option value="clave-za">Clave Z-A</option>
+          <option value="stock-asc">Stock menor a mayor</option>
+          <option value="stock-desc">Stock mayor a menor</option>
+        </select>
+        <button class="btn btn-primary" onclick="applyInvFisico()"><i class="fas fa-check-double"></i> Aplicar Cambios</button>
+        <button class="btn btn-outline" onclick="resetInvFisico()"><i class="fas fa-redo"></i> Reiniciar Conteo</button>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Clave</th><th>Descripci&oacute;n</th><th>En Sistema</th><th>F&iacute;sico</th><th>Dif.</th></tr></thead><tbody id="if-tbody"></tbody></table>
+      </div>
+      <div class="pagination" id="if-pagination"></div>
+    </div>
+
+    <!-- NUEVA COMPRA -->
+    <div id="section-ventas" class="section" style="display:none;">
+      <div class="venta-card">
+        <div class="venta-form-compact">
+          <div class="form-group"><label>Folio Compra</label><input type="text" id="venta-folio-input"></div>
+          <div class="form-group"><label>Fecha</label><input type="date" id="venta-fecha"></div>
+          <div class="form-group"><label>Solicitante / Servicio</label><input type="text" id="venta-cliente" placeholder="Nombre del area o servicio"></div>
+          <div class="form-group"><label>Nombre del trabajador</label><input type="text" id="venta-compra" placeholder="Nombre del trabajador"></div>
+        </div>
+        <div id="venta-items-list" class="venta-items-panel"></div>
+        <div class="ac-container" style="display: flex; gap: 8px;">
+          <div class="ac-results" id="venta-ac-list" style="display:none;"></div>
+          <div class="search-box"><i class="fas fa-search"></i><input type="text" id="venta-search-prod" placeholder="Buscar y agregar material..." oninput="searchVentaProduct()" autocomplete="off"></div>
+          <button class="btn btn-outline" onclick="openScannerModal('venta')" title="Escanear Codigo de Barras / QR con Camara"><i class="fas fa-barcode"></i> Escanear</button>
+        </div>
+        <div class="venta-total-bar">
+          <div class="venta-summary">
+            <div><div class="venta-total-label">TOTAL</div><div id="venta-total-val">$0.00</div></div>
+            <div class="venta-count" id="venta-count-val">0 art&iacute;culos</div>
+          </div>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end;">
+            <button class="btn btn-outline" onclick="clearVenta()">Limpiar</button>
+            <button class="btn btn-primary" id="venta-save-btn" onclick="saveVenta()"><i class="fas fa-shopping-cart"></i> Finalizar Compra</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VALE MANUAL -->
+    <div id="section-vale-manual" class="section" style="display:none;">
+      <div class="vale-manual-card">
+        <div class="vale-manual-note"><i class="fas fa-circle-info"></i> En Vale Manual los materiales salen del Inventario Vale / Donación. Al guardar se descuenta la existencia; al modificar o eliminar el vale se ajusta nuevamente. El Inventario Compras no se modifica.</div>
+        <div class="vale-form-grid">
+          <div class="form-group"><label>Folio</label><input type="text" id="vale-folio-input"></div>
+          <div class="form-group"><label>Fecha</label><input type="date" id="vale-fecha"></div>
+          <div class="form-group"><label>Nombre del trabajador</label><input type="text" id="vale-trabajador" placeholder="Nombre completo del trabajador"></div>
+          <div class="form-group"><label>Departamento</label><input type="text" id="vale-departamento" placeholder="Ej. QUIROFANO"></div>
+          <div class="form-group"><label>Cargo</label><input type="text" id="vale-cargo" placeholder="Ej. JEFA DE ENFERMERIA"></div>
+          <div class="form-group">
+            <label>Tipo / leyenda</label>
+            <select id="vale-tipo" onchange="toggleValeOtroConcepto()">
+              <option value="COMPRA">COMPRA</option>
+              <option value="DONACION">DONACION</option>
+              <option value="FUERA DE SIAM">FUERA DE SIAM</option>
+              <option value="OTRO CONCEPTO">OTRO CONCEPTO</option>
+            </select>
+          </div>
+          <div class="form-group" id="vale-otro-concepto-group" style="display:none;">
+            <label>Otro concepto</label>
+            <input type="text" id="vale-otro-concepto" placeholder="Escriba el concepto">
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;">
+          <strong style="color:#166534;"><i class="fas fa-boxes-stacked"></i> Materiales del Vale Manual</strong>
+          <button class="btn btn-outline" type="button" onclick="addValeManualItem()"><i class="fas fa-plus"></i> Agregar material</button>
+        </div>
+        <div class="ac-container" style="display:flex; gap:8px; margin-bottom:12px;">
+          <div class="ac-results" id="vale-inventory-ac-list" style="display:none; bottom:auto; top:calc(100% + 10px); box-shadow:0 15px 40px rgba(5,150,105,.18);"></div>
+          <div class="search-box"><i class="fas fa-search"></i><input type="text" id="vale-search-inventory" placeholder="Buscar en Inventario Vale / Donación..." oninput="searchValeInventory()" autocomplete="off"></div>
+        </div>
+        <div id="vale-items-list" class="vale-items-panel"></div>
+
+        <div class="vale-total-bar">
+          <div>
+            <div class="vale-total-label">Total del vale</div>
+            <div id="vale-manual-total">$0.00</div>
+            <div id="vale-manual-count" style="color:#1e3a8a; font-size:.78rem; font-weight:800; margin-top:5px;">0 material(es) | 0 pieza(s)</div>
+          </div>
+          <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end;">
+            <button class="btn btn-outline" type="button" onclick="clearValeManual()">Limpiar</button>
+            <button class="btn btn-primary" id="vale-manual-save-btn" type="button" onclick="saveValeManual()"><i class="fas fa-save"></i> Guardar Vale Manual</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORIAL COMPRAS -->
+    <div id="section-historial-ventas" class="section" style="display:none;">
+      <div class="toolbar">
+        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="hv-search" placeholder="Buscar por folio o solicitante..." oninput="filterHistorialVentas()"></div>
+        <select id="hv-sort" onchange="filterHistorialVentas()" title="Organizar Historial de Compras">
+          <option value="reciente">Fecha: M&aacute;s reciente primero</option>
+          <option value="antiguo">Fecha: M&aacute;s antiguo primero</option>
+          <option value="total-desc">Total: Mayor a menor</option>
+          <option value="total-asc">Total: Menor a mayor</option>
+          <option value="solo-venta">Tipo: Solo ventas</option>
+          <option value="solo-vale">Tipo: Solo vales manuales</option>
+        </select>
+        <button class="btn btn-success" onclick="openReportModal('sold')"><i class="fas fa-file-excel"></i> Exportar Compras</button>
+      </div>
+      <div id="hv-list"></div>
+    </div>
+
+    <!-- VENTAS POR MATERIAL (CON RANGO DE FECHAS) -->
+    <div id="section-ventas-material" class="section" style="display:none;">
+      <div class="toolbar" style="gap: 10px;">
+        <div class="search-box" style="max-width: 280px;">
+          <i class="fas fa-search"></i>
+          <input type="text" id="vm-search" placeholder="Filtrar por código, descr. o ref..." oninput="filterVentasMaterialDropdown()">
+        </div>
+        <select id="vm-product-select" onchange="renderVentasMaterial()" style="flex: 1.5; min-width: 260px;"></select>
+        <select id="vm-period-filter" onchange="onVentasMaterialPeriodChange()" style="min-width: 170px;">
+          <option value="all">Todo el Historial</option>
+          <option value="month">Este Mes</option>
+          <option value="current-year">A&ntilde;o Actual (2026)</option>
+          <option value="last-12">&Uacute;ltimos 12 meses</option>
+          <option value="custom">Rango Personalizado</option>
+        </select>
+        <div id="vm-custom-dates" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <label style="font-size:0.75rem; font-weight:800; color:#475569;">DESDE:</label>
+          <input type="date" id="vm-date-from" onchange="renderVentasMaterial()">
+          <label style="font-size:0.75rem; font-weight:800; color:#475569;">HASTA:</label>
+          <input type="date" id="vm-date-to" onchange="renderVentasMaterial()">
+        </div>
+        <button class="btn btn-outline" onclick="openScannerModal('vm')" title="Escanear material con camara"><i class="fas fa-barcode"></i> Escanear</button>
+        <button class="btn btn-success" onclick="exportVentasMaterialExcel()"><i class="fas fa-file-excel"></i> Exportar a Excel</button>
+        <div id="vm-desc-box" class="vm-desc-box is-general" role="status" aria-live="polite">
+          <div id="vm-desc-title" class="vm-desc-title">Todos los materiales</div>
+          <div id="vm-desc-text" class="vm-desc-text">Vista consolidada general. Selecciona un material para ver su descripción completa.</div>
+          <div id="vm-desc-meta" class="vm-desc-meta"></div>
+        </div>
+      </div>
+
+      <div id="vm-kpi-grid" class="stats-grid"></div>
+
+      <div class="net-grid-card" style="margin-bottom: 24px;">
+        <!-- Resumen Mes a Mes -->
+        <div class="table-wrap">
+          <div style="padding: 16px 20px; font-weight: 800; color: #064e3b; background: #ecfdf5; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <span><i class="fas fa-calendar-alt"></i> Salidas Totales por Mes</span>
+            <span id="vm-badge-clave" class="clave-cell" style="font-size:0.8rem;">—</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Mes / Periodo</th>
+                <th>Compras (Folios)</th>
+                <th>Piezas Surtidas</th>
+                <th>Total Salidas ($)</th>
+              </tr>
+            </thead>
+            <tbody id="vm-monthly-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Top Solicitantes -->
+        <div class="table-wrap">
+          <div style="padding: 16px 20px; font-weight: 800; color: #064e3b; background: #ecfdf5; border-bottom: 1px solid var(--border);">
+            <i class="fas fa-hospital-user"></i> &Aacute;reas y Solicitantes
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Solicitante / &Aacute;rea</th>
+                <th>Folios</th>
+                <th>Piezas</th>
+                <th>Importe ($)</th>
+              </tr>
+            </thead>
+            <tbody id="vm-clientes-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Detalle historico de salidas del material -->
+      <div class="table-wrap">
+        <div style="padding: 16px 20px; font-weight: 800; color: #064e3b; background: #f8fafc; border-bottom: 1px solid var(--border);">
+          <i class="fas fa-list-check"></i> Desglose Detallado de Compras del Material
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Folio</th>
+              <th>Solicitante / Destino</th>
+              <th>Piezas</th>
+              <th>Precio Unit.</th>
+              <th>Total Importe</th>
+            </tr>
+          </thead>
+          <tbody id="vm-detail-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MOVIMIENTOS -->
+    <div id="section-movimientos" class="section" style="display:none;">
+      <div class="toolbar">
+        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="mov-search" placeholder="Buscar por material, solicitante, folio o clave..." oninput="renderMovimientos()"></div>
+        <select id="mov-type-filter" onchange="renderMovimientos()">
+          <option value="all">Todos los tipos</option>
+          <option value="ENTRADA">Entradas</option>
+          <option value="SALIDA">Salidas</option>
+          <option value="MODIFICADA">Modificadas</option>
+        </select>
+        <select id="mov-sort" onchange="renderMovimientos()" title="Organizar Movimientos">
+          <option value="reciente">Fecha: M&aacute;s reciente primero</option>
+          <option value="antiguo">Fecha: M&aacute;s antiguo primero</option>
+          <option value="qty-desc">Cantidad: Mayor a menor</option>
+          <option value="qty-asc">Cantidad: Menor a mayor</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Clave</th><th>Material</th><th>Solicitante / Folio</th><th>Cant.</th><th>Usuario</th><th class="admin-only">Acciones</th></tr></thead><tbody id="mov-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- KARDEX PROFESIONAL: almacén único / costo promedio ponderado -->
+    <div id="section-kardex" class="section" style="display:none;">
+      <div class="net-box" style="margin-bottom:14px;">
+        <div class="net-box-title"><i class="fas fa-boxes-stacked" style="color:#059669;"></i> Kardex de almacén · Costo promedio ponderado</div>
+        <div class="net-box-sub">Las entradas toman el costo de compra del inventario. Las salidas se valorizan al promedio vigente. Los saldos anteriores a la activación se muestran como saldo inicial, no como movimientos históricos reconstruidos.</div>
+      </div>
+      <div id="kardex-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px;"></div>
+      <div class="toolbar" style="flex-wrap:wrap;gap:8px;">
+        <div class="search-box" style="min-width:220px;flex:2;"><i class="fas fa-search"></i><input type="text" id="kardex-search" placeholder="Buscar folio, factura, clave o material..." oninput="renderKardex()"></div>
+        <input type="date" id="kardex-from" title="Desde" onchange="renderKardex()" style="min-width:135px;">
+        <input type="date" id="kardex-to" title="Hasta" onchange="renderKardex()" style="min-width:135px;">
+        <select id="kardex-type" onchange="renderKardex()"><option value="">Todos los movimientos</option><option value="ENTRADA">Entradas</option><option value="SALIDA">Salidas</option><option value="AJUSTE">Ajustes</option></select>
+        <select id="kardex-sort" onchange="renderKardex()" title="Ordenar"><option value="reciente">Más recientes</option><option value="antiguo">Más antiguos</option></select>
+      </div>
+      <div id="kardex-admin-tools" class="toolbar" style="margin:8px 0 14px;gap:8px;">
+        <button class="btn btn-primary" onclick="openKardexAdjustment()"><i class="fas fa-sliders"></i> Ajuste manual</button>
+        <button class="btn btn-outline" onclick="exportKardexExcel()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+        <button class="btn btn-outline" onclick="printKardex()"><i class="fas fa-print"></i> Imprimir</button>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Folio / Referencia</th><th>Tipo</th><th>Clave</th><th>Material</th><th>Entrada</th><th>Salida</th><th>Existencia</th><th>Costo unit.</th><th>Promedio</th><th>Valor saldo</th><th>Usuario</th></tr></thead><tbody id="kardex-tbody"></tbody></table></div>
+      <div id="kardex-count" style="font-size:.82rem;color:#64748b;margin-top:8px;"></div>
+    </div>
+
+    <div id="modal-kardex-ajuste" class="modal-overlay">
+      <div class="modal" style="max-width:520px;">
+        <div class="modal-header"><h3><i class="fas fa-sliders"></i> Ajuste manual de Kardex</h3><button class="modal-close" onclick="closeModal('modal-kardex-ajuste')">&times;</button></div>
+        <div class="modal-body">
+          <label>Material</label><select id="kardex-ajuste-producto" class="form-control"></select>
+          <label style="margin-top:10px;display:block;">Tipo de ajuste</label><select id="kardex-ajuste-tipo" class="form-control" onchange="updateKardexAdjustmentCost()"><option value="ENTRADA">Entrada / incremento</option><option value="SALIDA">Salida / decremento</option></select>
+          <label style="margin-top:10px;display:block;">Cantidad</label><input id="kardex-ajuste-cantidad" class="form-control" type="number" min="0.0001" step="any" placeholder="Cantidad">
+          <div id="kardex-ajuste-cost-wrap"><label style="margin-top:10px;display:block;">Costo unitario de compra ($)</label><input id="kardex-ajuste-costo" class="form-control" type="number" min="0" step="0.01" placeholder="Costo unitario"></div>
+          <label style="margin-top:10px;display:block;">Motivo (obligatorio)</label><textarea id="kardex-ajuste-motivo" class="form-control" rows="3" placeholder="Explica el motivo y soporte del ajuste"></textarea>
+          <div style="font-size:.8rem;color:#64748b;margin-top:8px;">Solo el administrador puede autorizar ajustes. No se permite dejar existencias negativas.</div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modal-kardex-ajuste')">Cancelar</button><button class="btn btn-primary" onclick="saveKardexAdjustment()">Registrar ajuste</button></div>
+      </div>
+    </div>
+
+    <!-- GESTIÓN DE USUARIOS, RED Y SEGURIDAD -->
+    <div id="section-config" class="section" style="display:none;">
+      <!-- Tarjeta de Administracion de Usuarios -->
+      <div class="net-box" style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <div class="net-box-title"><i class="fas fa-users" style="color: #059669;"></i> Administraci&oacute;n de Cuentas y Accesos Cifrados</div>
+            <div class="net-box-sub" style="margin-bottom:0;">Cuentas protegidas con Hash Criptogr&aacute;fico SHA-256 (Web Crypto API).</div>
+          </div>
+          <button class="btn btn-primary" onclick="openUserModal()"><i class="fas fa-user-plus"></i> Nuevo Usuario</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Nombre Completo</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="net-grid-card">
+        <!-- Conexion mediante Firebase -->
+        <div class="net-box">
+          <div class="net-box-title"><i class="fas fa-globe" style="color: #059669;"></i> Conexi&oacute;n en L&iacute;nea entre Computadoras</div>
+          <div class="net-box-sub">Sincronizaci&oacute;n en tiempo real mediante Firebase Realtime Database.</div>
+
+          <div class="net-instruction-box">
+            <div class="net-instruction-header"><i class="fas fa-check-circle"></i> Pasos para conectar dos o m&aacute;s computadoras:</div>
+            <ol class="net-steps-list">
+              <li><strong>1.</strong> Abra este archivo en la <strong>Computadora 1</strong> y en la <strong>Computadora 2</strong>.</li>
+              <li><strong>2.</strong> En ambas computadoras escriba exactamente la misma <strong>Clave de Sala</strong> abajo (ejemplo: <code>comprasissste</code>) y haga clic en <strong>Conectar Sala</strong>.</li>
+              <li><strong>3.</strong> Ver&aacute; el indicador arriba: <span id="net-inline-status" style="font-weight:700; color:#065f46;"><i class="fas fa-circle" style="color:#94a3b8; font-size:0.75rem;"></i> Sin Conectar</span>.</li>
+              <li><strong>4.</strong> &iexcl;Listo! Los cambios se guardan en Firebase y se sincronizan en vivo.</li>
+            </ol>
+          </div>
+
+          <div class="net-room-field">
+            <label>CLAVE DE SALA COMPARTIDA</label>
+            <input type="text" id="cloud-room-input" class="net-room-input" value="" placeholder="Ejemplo: almacen">
+          </div>
+
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="saveCloudRoom()"><i class="fas fa-plug"></i> Conectar Sala</button>
+            <button class="btn btn-outline" onclick="broadcastFullSync()"><i class="fas fa-sync-alt"></i> Forzar Env&iacute;o de Datos</button>
+          </div>
+        </div>
+
+        <!-- Seguridad y Respaldo -->
+        <div class="net-box">
+          <div class="net-box-title"><i class="fas fa-shield-alt" style="color: #059669;"></i> Respaldos del Sistema</div>
+          <div class="net-box-sub">Base de datos local en IndexedDB sin l&iacute;mites de almacenamiento.</div>
+
+          <button class="btn btn-success" style="width:100%; margin-bottom:14px; justify-content:center; padding: 13px;" onclick="exportBackup()"><i class="fas fa-download"></i> Descargar Respaldo Total (.json)</button>
+          <div style="background:#f8fafc; border:1px dashed var(--border); border-radius:12px; padding:16px; text-align:center;">
+            <input type="file" id="backup-file" style="display:none;" onchange="importBackup(this)">
+            <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="document.getElementById('backup-file').click()"><i class="fas fa-upload"></i> Restaurar Base de Datos</button>
+            <small style="display:block; color:#64748b; margin-top:8px;">Importe archivos .json generados previamente.</small>
+          </div>
+
+          <!-- ZONA DE PELIGRO: Reinicio total para reutilizar el sistema en otro proyecto -->
+          <div style="margin-top:22px; padding-top:18px; border-top:1px dashed #fecaca; text-align:right;">
+            <div style="text-align:left; margin-bottom:10px;">
+              <div style="font-weight:800; color:#b91c1c; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.03em;"><i class="fas fa-triangle-exclamation"></i> Zona de Peligro</div>
+              <small style="display:block; color:#64748b; margin-top:4px;">Borra todo (productos, compras, movimientos y usuarios) para reutilizar este sistema en otro proyecto o cliente distinto.</small>
+            </div>
+            <button class="btn btn-danger" style="justify-content:center;" onclick="openResetSystemModal()"><i class="fas fa-trash-can"></i> Borrar Todos los Datos</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ESCÁNER CÁMARA (CÓDIGO DE BARRAS / QR) -->
+<div class="modal-overlay" id="modal-scanner">
+  <div class="modal" style="max-width: 500px; text-align: center;">
+    <div class="modal-header">
+      <h3><i class="fas fa-camera" style="color:var(--primary); margin-right:8px;"></i>Escanear C&oacute;digo</h3>
+      <button class="close-btn" onclick="closeScannerModal()">&times;</button>
+    </div>
+    <div id="scanner-reader" style="width: 100%; min-height: 250px; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 16px;"></div>
+    <div style="display:flex; justify-content: space-between; align-items:center;">
+      <small id="scanner-feedback" style="font-weight:700; color:var(--text-light);">Alinee el c&oacute;digo frente a la c&aacute;mara</small>
+      <button class="btn btn-outline" onclick="closeScannerModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL USUARIO (CREAR / EDITAR) -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal" style="max-width: 500px;">
+    <div class="modal-header">
+      <h3 id="modal-user-title"><i class="fas fa-user-shield" style="color:var(--primary); margin-right:8px;"></i>Usuario</h3>
+      <button class="close-btn" onclick="closeModal('modal-user')">&times;</button>
+    </div>
+    <div class="form-grid" style="grid-template-columns: 1fr;">
+      <input type="hidden" id="user-id">
+      <div class="form-group">
+        <label>Nombre Completo</label>
+        <input type="text" id="user-fullname" placeholder="Ej. Juan Perez Morales">
+      </div>
+      <div class="form-group">
+        <label>Nombre de Usuario (Login)</label>
+        <input type="text" id="user-username" placeholder="Ej. juanperez">
+      </div>
+      <div class="form-group">
+        <label>Contrase&ntilde;a</label>
+        <input type="password" id="user-password" placeholder="Dejar en blanco para mantener la actual o escribir nueva">
+      </div>
+      <div class="form-group">
+        <label>Rol / Nivel de Acceso</label>
+        <select id="user-role">
+          <option value="user">Usuario (Operativo / Compras / Kardex)</option>
+          <option value="folio">Usuario + Folio (solo puede modificar el folio)</option>
+          <option value="admin">Administrador (Control Total del Sistema)</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Permisos individuales</label>
+        <div id="user-permissions" class="permission-grid" aria-label="Permisos individuales"></div>
+        <small style="color:#64748b;">Selecciona las funciones que podrá utilizar este usuario. Los permisos MASTER son exclusivos y no se asignan desde este formulario.</small>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-user')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveUserData()"><i class="fas fa-save"></i> Guardar Usuario</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRODUCTO -->
+<div class="modal-overlay" id="modal-producto">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-box" style="color:var(--primary); margin-right:8px;"></i>Material / Producto</h3><button class="close-btn" onclick="closeModal('modal-producto')">&times;</button></div>
+    <div class="form-grid">
+      <input type="hidden" id="prod-id">
+      <div class="form-group"><label>Clave</label><input type="text" id="prod-clave"></div>
+      <div class="form-group"><label>Partida</label><input type="text" id="prod-partida" placeholder="Opcional"></div>
+      <div class="form-group"><label>Contrato</label><input type="text" id="prod-contrato" placeholder="Opcional"></div>
+      <div class="form-group"><label>No. Factura</label><input type="text" id="prod-factura" placeholder="Opcional"></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="prod-fecha-entrada"></div>
+      <div class="form-group"><label>Unidad</label><input type="text" id="prod-unidad" placeholder="PIEZA, CAJA..."></div>
+      <div class="form-group full"><label>Descripci&oacute;n</label><textarea id="prod-descripcion" rows="3"></textarea></div>
+      <div class="form-group"><label>Precio</label><input type="number" id="prod-precio" step="0.01"></div>
+      <div class="form-group"><label>Stock Inicial</label><input type="number" id="prod-cantidad"></div>
+      <div class="form-group"><label>Stock mínimo / punto de reorden</label><input type="number" id="prod-stock-minimo" min="0" step="1" value="5"><small style="color:#64748b;">Genera alertas cuando la existencia sea igual o menor a este valor.</small></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; margin-top:30px;">
+      <button id="btn-delete-prod" class="btn btn-danger admin-only" onclick="deleteProduct()">Eliminar</button>
+      <div style="display:flex; gap:12px;"><button class="btn btn-outline" onclick="closeModal('modal-producto')">Cancelar</button><button class="btn btn-primary" onclick="saveProduct()">Guardar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENTRADA -->
+<div class="modal-overlay" id="modal-entrada-producto">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-boxes-packing" style="color:#0284c7; margin-right:8px;"></i>Dar Entrada de Material</h3><button class="close-btn" onclick="closeModal('modal-entrada-producto')">&times;</button></div>
+    <input type="hidden" id="entrada-prod-id">
+    <div class="entry-summary">
+      <div class="entry-summary-card"><span>Clave</span><strong id="entrada-clave">—</strong></div>
+      <div class="entry-summary-card"><span>Stock actual</span><strong id="entrada-stock-actual">0</strong></div>
+      <div class="entry-summary-card"><span>Stock resultante</span><strong id="entrada-stock-resultante">0</strong></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Material</label><input type="text" id="entrada-descripcion" readonly></div>
+      <div class="form-group"><label>Cantidad que entra</label><input type="number" id="entrada-cantidad" min="0.01" step="0.01" oninput="updateEntradaPreview()" placeholder="Ej. 50"></div>
+      <div class="form-group"><label>No. Factura / Referencia</label><input type="text" id="entrada-factura" placeholder="Opcional"></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="entrada-fecha"></div>
+      <div class="form-group"><label>Precio Unitario</label><input type="number" id="entrada-precio" min="0" step="0.01"></div>
+      <div class="form-group full"><label>Nota / Concepto</label><textarea id="entrada-nota" rows="2" placeholder="Entrada de material"></textarea></div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:30px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-entrada-producto')">Cancelar</button>
+      <button class="btn btn-entry" onclick="saveProductEntry()"><i class="fas fa-arrow-down"></i> Registrar Entrada</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENTRADA INVENTARIO VALE / DONACION -->
+<div class="modal-overlay" id="modal-entrada-vale-inventario">
+  <div class="modal">
+    <div class="modal-header"><h3><i class="fas fa-hand-holding-heart" style="color:#0284c7; margin-right:8px;"></i>Dar Entrada de Material — Vale / Donación</h3><button class="close-btn" onclick="closeModal('modal-entrada-vale-inventario')">&times;</button></div>
+    <input type="hidden" id="vale-entrada-inv-id">
+    <div class="entry-summary">
+      <div class="entry-summary-card"><span>Clave</span><strong id="vale-entrada-inv-clave">—</strong></div>
+      <div class="entry-summary-card"><span>Existencia actual</span><strong id="vale-entrada-inv-actual">0</strong></div>
+      <div class="entry-summary-card"><span>Existencia resultante</span><strong id="vale-entrada-inv-resultante">0</strong></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Material</label><input type="text" id="vale-entrada-inv-descripcion" readonly></div>
+      <div class="form-group"><label>Cantidad que entra</label><input type="number" id="vale-entrada-inv-cantidad" min="1" step="1" oninput="updateValeInventoryEntryPreview()" placeholder="Ej. 50"></div>
+      <div class="form-group"><label>Referencia</label><input type="text" id="vale-entrada-inv-referencia" placeholder="Opcional"></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="vale-entrada-inv-fecha"></div>
+      <div class="form-group"><label>Precio Unitario</label><input type="number" id="vale-entrada-inv-precio" min="0" step="0.01"></div>
+      <div class="form-group full"><label>Nota / Concepto</label><textarea id="vale-entrada-inv-nota" rows="2" placeholder="Entrada de material / donación"></textarea></div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:30px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-entrada-vale-inventario')">Cancelar</button>
+      <button class="btn btn-entry" onclick="saveValeInventoryEntry()"><i class="fas fa-arrow-down"></i> Registrar Entrada</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MOVIMIENTO -->
+<div class="modal-overlay" id="modal-movimiento">
+  <div class="modal">
+    <div class="modal-header"><h3>Detalle de Movimiento</h3><button class="close-btn" onclick="closeModal('modal-movimiento')">&times;</button></div>
+    <div class="form-grid">
+      <input type="hidden" id="mov-id">
+      <div class="form-group"><label>Fecha</label><input type="text" id="mov-fecha" readonly></div>
+      <div class="form-group"><label>Tipo</label><select id="mov-tipo"><option value="ENTRADA">ENTRADA</option><option value="SALIDA">SALIDA</option><option value="MODIFICADA">MODIFICADA</option></select></div>
+      <div class="form-group"><label>Cantidad</label><input type="number" id="mov-qty"></div>
+      <div class="form-group full"><label>Nota / Motivo</label><textarea id="mov-nota" rows="2"></textarea></div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:30px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-movimiento')">Cerrar</button>
+      <button class="btn btn-primary admin-only" onclick="saveMovChanges()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE / IMPRESIÓN -->
+<div class="modal-overlay" id="modal-venta-detail">
+  <div class="modal sale-detail-modal">
+    <div class="modal-header no-print">
+      <h3 style="display:flex; align-items:center; gap:8px;"><i class="fas fa-file-invoice" style="color:var(--primary);"></i> Detalle de Compra / Formato</h3>
+      <button class="close-btn" onclick="closeModal('modal-venta-detail')">&times;</button>
+    </div>
+    <div id="print-area"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:18px;" class="no-print">
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-success" onclick="copyVentaTableToClipboard()" title="Copia todas las filas con encabezados para Excel"><i class="fas fa-copy"></i> Copiar Tabla para Excel</button>
+        <button class="btn btn-outline" onclick="copyVentaRowsOnlyToClipboard()" title="Copia solo los datos sin encabezados"><i class="fas fa-table-cells"></i> Copiar Renglones</button>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline" onclick="closeModal('modal-venta-detail')">Cerrar</button>
+        <button class="btn btn-excel361" onclick="exportCurrentVentaF361()"><i class="fas fa-print"></i> Imprimir folio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOLIO -->
+<div class="modal-overlay" id="modal-folio">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header"><h3>Configurar Folio Actual</h3><button class="close-btn" onclick="closeModal('modal-folio')">&times;</button></div>
+    <input type="text" id="folio-input" class="login-input" style="margin-bottom:15px;">
+    <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="saveFolio()">Actualizar Folio</button>
+  </div>
+</div>
+
+<!-- MODAL REINICIO TOTAL DEL SISTEMA (BORRAR TODO) -->
+<div class="modal-overlay" id="modal-reset-system">
+  <div class="modal" style="max-width: 460px;">
+    <div class="modal-header">
+      <h3 style="color:#b91c1c;"><i class="fas fa-triangle-exclamation" style="margin-right:8px;"></i>Reiniciar Sistema por Completo</h3>
+      <button class="close-btn" onclick="closeResetSystemModal()">&times;</button>
+    </div>
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:14px 16px; margin-bottom:18px;">
+      <p style="color:#991b1b; font-weight:700; font-size:0.9rem; margin-bottom:8px;">Esta acci&oacute;n eliminar&aacute; PERMANENTEMENTE:</p>
+      <ul style="color:#991b1b; font-size:0.86rem; padding-left:18px; line-height:1.7; margin:0;">
+        <li>Todo el cat&aacute;logo de productos / materiales</li>
+        <li>Todas las compras y su historial</li>
+        <li>Todos los movimientos y el Kardex</li>
+        <li>Todos los usuarios (se restauran las cuentas de f&aacute;brica)</li>
+      </ul>
+      <p style="color:#991b1b; font-size:0.86rem; margin-top:10px; margin-bottom:0;">No se puede deshacer. &Uacute;selo solo si va a reutilizar este sistema para otro proyecto o cliente.</p>
+    </div>
+    <div class="form-group">
+      <label>Contrase&ntilde;a de administrador o clave maestra</label>
+      <input type="password" id="reset-system-password" placeholder="Escriba su contrase&ntilde;a o la clave maestra" autocomplete="off">
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+      <button class="btn btn-outline" onclick="closeResetSystemModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmResetSystem()"><i class="fas fa-trash-can"></i> Confirmar y Borrar Todo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CENTRO DE REPORTES EXCEL -->
+<div class="modal-overlay" id="modal-reportes">
+  <div class="modal report-modal">
+    <div class="modal-header">
+      <div>
+        <h3 style="margin:0;"><i class="fas fa-chart-column" style="color:#059669; margin-right:8px;"></i>Centro de Reportes Excel</h3>
+        <small style="color:#64748b;">Exportaci&oacute;n profesional (.xlsx)</small>
+      </div>
+      <button class="close-btn" onclick="closeModal('modal-reportes')">&times;</button>
+    </div>
+    <div class="report-modal-body">
+      <div class="report-intro">
+        <div class="report-intro-icon"><i class="fas fa-file-excel"></i></div>
+        <div>
+          <h4>Genere reportes listos para auditor&iacute;a y control</h4>
+          <p>Exporte el libro completo con m&uacute;ltiples hojas o descargue compras por per&iacute;odo, productos m&aacute;s adquiridos, stock en cero, stock cr&iacute;tico y recepciones.</p>
+        </div>
+      </div>
+
+      <div class="report-grid">
+        <div class="report-field">
+          <label for="report-type">Tipo de reporte</label>
+          <select id="report-type" onchange="updateReportPreview()">
+            <option value="full">Reporte completo (varias hojas)</option>
+            <option value="sold">Productos / Materiales comprados</option>
+            <option value="top">Materiales con mayor adquisici&oacute;n</option>
+            <option value="sales-summary">Resumen por folio y solicitante</option>
+            <option value="zero">Materiales agotados (stock en cero)</option>
+            <option value="critical">Stock cr&iacute;tico (1 a 5 piezas)</option>
+            <option value="no-sales">Materiales sin movimiento en el per&iacute;odo</option>
+            <option value="entries">Historial de entradas y facturas</option>
+          </select>
+        </div>
+        <div class="report-field">
+          <label for="report-date-from">Desde</label>
+          <input type="date" id="report-date-from" onchange="updateReportPreview()">
+        </div>
+        <div class="report-field">
+          <label for="report-date-to">Hasta</label>
+          <input type="date" id="report-date-to" onchange="updateReportPreview()">
+        </div>
+      </div>
+
+      <div class="report-help" id="report-help"></div>
+      <div class="report-quick">
+        <button type="button" onclick="setReportPeriod('all')"><i class="fas fa-infinity"></i> Todo el historial</button>
+        <button type="button" onclick="setReportPeriod('month')"><i class="fas fa-calendar-days"></i> Este mes</button>
+        <button type="button" onclick="setReportPeriod('year')"><i class="fas fa-calendar"></i> Este a&ntilde;o</button>
+      </div>
+
+      <div class="report-preview">
+        <div class="report-kpi"><span>Compras</span><strong id="report-kpi-sales">0</strong></div>
+        <div class="report-kpi"><span>Unidades Adquiridas</span><strong id="report-kpi-units">0</strong></div>
+        <div class="report-kpi"><span>Importe Total</span><strong id="report-kpi-total">$0.00</strong></div>
+        <div class="report-kpi"><span>Stock en cero</span><strong id="report-kpi-zero">0</strong></div>
+      </div>
+
+      <div class="report-actions">
+        <div class="report-actions-note">Las fechas aplican a movimientos del per&iacute;odo. Los reportes de stock reflejan el inventario actual.</div>
+        <div class="report-actions-buttons">
+          <button class="btn btn-outline" onclick="closeModal('modal-reportes')">Cancelar</button>
+          <button class="btn btn-success" id="report-export-btn" onclick="exportSelectedReport()"><i class="fas fa-download"></i> Generar Excel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL FOLIOS F-361: GUARDADO POR DÍA / MES -->
+<div class="modal-overlay" id="modal-folios-f361">
+  <div class="modal report-modal" style="max-width:760px;">
+    <div class="modal-header">
+      <div>
+        <h3 style="margin:0;"><i class="fas fa-print" style="color:#166534; margin-right:8px;"></i>Imprimir folios</h3>
+        <small style="color:#64748b;">Selecciona un día o un mes para generar los folios individuales</small>
+      </div>
+      <button class="close-btn" onclick="closeModal('modal-folios-f361')">&times;</button>
+    </div>
+    <div class="report-modal-body">
+      <div class="report-intro">
+        <div class="report-intro-icon"><i class="fas fa-file-excel"></i></div>
+        <div>
+          <h4>Guardar los folios directamente en una carpeta</h4>
+          <p>El programa usa exactamente la plantilla que cargaste y genera cada folio como un archivo Excel independiente, listo para abrir e imprimir. Puedes seleccionar un día o un mes completo.</p>
+        </div>
+      </div>
+
+      <div class="report-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="report-field">
+          <label>¿Qué folios deseas guardar?</label>
+          <div class="f361-period-toggle" role="group" aria-label="Periodo de folios">
+            <button type="button" id="f361-period-day-btn" class="f361-period-btn active"
+                    onclick="setF361PeriodMode('day')">
+              <i class="fas fa-calendar-day"></i> Un día
+            </button>
+            <button type="button" id="f361-period-month-btn" class="f361-period-btn"
+                    onclick="setF361PeriodMode('month')">
+              <i class="fas fa-calendar-days"></i> Un mes
+            </button>
+          </div>
+          <select id="f361-period-mode" onchange="updateF361PeriodUI()" style="display:none;" aria-hidden="true">
+            <option value="day">Un día</option>
+            <option value="month">Un mes</option>
+          </select>
+        </div>
+        <div class="report-field">
+          <label id="f361-date-label" for="f361-date">Fecha</label>
+          <input type="date" id="f361-date" onchange="updateF361BatchPreview()">
+          <input type="month" id="f361-month" style="display:none;" onchange="updateF361BatchPreview()">
+        </div>
+      </div>
+
+      <div class="folio-folder-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div>
+            <strong style="color:#064e3b;"><i class="fas fa-folder"></i> Carpeta de destino</strong>
+            <div class="folio-folder-status" id="f361-folder-status">No se ha seleccionado una carpeta.</div>
+          </div>
+          <button class="btn btn-outline" onclick="chooseF361Folder()"><i class="fas fa-folder-plus"></i> Seleccionar carpeta</button>
+        </div>
+      </div>
+
+      <div class="report-preview">
+        <div class="report-kpi"><span>Folios encontrados</span><strong id="f361-kpi-folios">0</strong></div>
+        <div class="report-kpi"><span>Materiales</span><strong id="f361-kpi-items">0</strong></div>
+        <div class="report-kpi"><span>Unidades</span><strong id="f361-kpi-units">0</strong></div>
+        <div class="report-kpi"><span>Importe</span><strong id="f361-kpi-total">$0.00</strong></div>
+      </div>
+
+      <div class="folio-batch-note" style="margin-top:18px;">
+        <strong>Organización automática:</strong>
+        <span id="f361-path-preview">Folios / año / mes / día</span>.
+        Cada folio se guardará como <strong>Folios_XXX.xlsx</strong>.
+      </div>
+
+      <div class="report-actions">
+        <div class="report-actions-note">Chrome y Edge permiten seleccionar una carpeta. Si el navegador no ofrece esa función, el sistema descargará los archivos normalmente.</div>
+        <div class="report-actions-buttons">
+          <button class="btn btn-outline" onclick="closeModal('modal-folios-f361')">Cancelar</button>
+          <button class="btn btn-excel361" onclick="exportF361Batch()"><i class="fas fa-file-export"></i> Generar folios para impresión</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="js/app.js?v=20261109-test-v9"></script>
+
+<script id="pro-ui-js" src="js/pro-ui.js?v=20261111"></script>
+<script src="js/capa-web.js?v=20261111"></script>
+<script src="js/modulos.js?v=20261108-permissions-ui"></script>
+</body>
+</html>

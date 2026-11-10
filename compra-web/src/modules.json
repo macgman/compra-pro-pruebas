@@ -1,0 +1,19 @@
+[
+  "01-bootstrap.js",
+  "02-motor-1-base-de-datos-indexeddb-capacidad-.js",
+  "03-motor-2-criptograf-a-sha-256-web-crypto-ap.js",
+  "04-estado-visual-de-conexi-n-firebase.js",
+  "05-motor-3-firebase-realtime-database.js",
+  "06-estado-principal-y-usuarios.js",
+  "07-utilidades-de-sincronizaci-n-y-borrados.js",
+  "08-motor-3b-compatibilidad-con-el-c-digo-ante.js",
+  "09-motor-4-esc-ner-de-c-mara-html5-qrcode-web.js",
+  "10-motor-5-carga-masiva-desde-excel-xlsx-csv.js",
+  "11-inicializaci-n-general-del-sistema-y-sanea.js",
+  "12-login-validado-por-el-servidor-de-compra-p.js",
+  "13-m-dulo-ventas-y-salidas-por-material-corre.js",
+  "14-configuraci-n-local-de-la-carpeta-f-361-ai.js",
+  "15-inventario-exclusivo-para-vale-manual-dona.js",
+  "16-reinicio-total-del-sistema-borrar-todo-par.js",
+  "17-motor-multihoja-de-excel-estilizado-con-ex.js"
+]

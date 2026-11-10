@@ -1,0 +1,20 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "compraPro": {
+      "rooms": {
+        "$room": {
+          ".read": "auth != null && auth.token.compraPro === true && auth.token.room === $room",
+          ".write": "auth != null && auth.token.compraPro === true && auth.token.room === $room && (auth.token.role === 'master' || auth.token.role === 'admin' || auth.token.role === 'user' || auth.token.role === 'folio')"
+        }
+      },
+      "ext": {
+        "$room": {
+          ".read": "auth != null && auth.token.compraPro === true && auth.token.room === $room",
+          ".write": "auth != null && auth.token.compraPro === true && auth.token.room === $room && (auth.token.role === 'master' || auth.token.role === 'admin' || auth.token.role === 'user' || auth.token.role === 'folio')"
+        }
+      }
+    }
+  }
+}
