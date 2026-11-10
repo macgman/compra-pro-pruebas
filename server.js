@@ -82,7 +82,12 @@ async function writeSecurityAudit(roomId, event) {
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(helmet());
-app.use(express.json({ limit: '32kb' }));
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
+  next();
+});
+app.use(express.json({ limit: '32kb', strict: true }));
 
 // CORS para app HTTPS y para el origen "null" de un HTML local. CORS no autentica.
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'null').split(',').map(s => s.trim()).filter(Boolean);
@@ -130,7 +135,7 @@ app.get('/auth/session', async (req, res) => {
     if (!match) return res.status(401).json({ ok: false, error: 'Falta el token de sesión.' });
     const decoded = await admin.auth().verifyIdToken(match[1], true);
     const room = cleanRoomId(decoded.room || '');
-    if (decoded.compraPro !== true || !room || !['master', 'admin', 'user', 'folio'].includes(decoded.role)) {
+    if (decoded.compraPro !== true || !room || room !== ENV_ROOM_ID || !['master', 'admin', 'user', 'folio'].includes(decoded.role)) {
       return res.status(403).json({ ok: false, error: 'La sesión no tiene claims válidas de COMPRA PRO.' });
     }
     return res.json({
@@ -156,7 +161,12 @@ app.post('/auth/login', loginLimiter, async (req, res) => {
     const password = String(req.body?.password || '');
     // The app's room ID is sent by the HTML; use the server variable only as fallback.
     const requestedRoom = cleanRoomId(req.body?.roomId || '');
-    const roomId = requestedRoom || ENV_ROOM_ID;
+    // La sala es una frontera de seguridad: el cliente no puede elegir otra sala.
+    // Si envía una sala distinta a la configurada en Render, se rechaza.
+    const roomId = ENV_ROOM_ID;
+    if (requestedRoom && requestedRoom !== ENV_ROOM_ID) {
+      return res.status(403).json({ ok: false, error: 'La sala solicitada no está autorizada para este servidor.' });
+    }
     if (!username || !password || username.length > 100 || password.length > 256) {
       return res.status(400).json({ ok: false, error: 'Usuario y contraseña son obligatorios.' });
     }
